@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import sys
+import logging
 import argparse
 import textwrap
 import contextlib
@@ -49,7 +50,7 @@ def safe_open(filename, mode='r'):
 	'''Just like open, but makes top-level code using with more readible, passing the error directly from the with statement.'''
 	try:
 		f = open(filename, mode)
-	except IOError as err:
+	except EnvironmentError as err:
 		yield None, err
 	else:
 		try:
@@ -61,37 +62,94 @@ def safe_open(filename, mode='r'):
 def main():
 	global fin, iout, dout, lnum, opnum, inum, addrPos, header, fullOut, strict, multiOut, labels    
 
-	parser = argparse.ArgumentParser(description=DESC, epilog=EPILOG, formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('-d','--debug', action='store_true', default=False, help='enables debugging')
+	# Parse arguments
+	parser = argparse.ArgumentParser(description=DESC, 
+									 epilog=EPILOG, 
+									 formatter_class=argparse.RawDescriptionHelpFormatter)
+	parser.add_argument('--version', action='version', 
+		version='{} version {}'.format(sys.argv[0], VERSION))
+	parser.add_argument('-d','--debug', type=int, choices=range(3), default=0, metavar='LVL',
+		help='sets debug logging level (default=0)')
 	parser.add_argument('-i','--isa', 
 		help='uses the specified ISA during assembly. Otherwise, the file directive is read or the default ISA is used')
-	parser.add_argument('-p','--print-input', action='store_true', default=False, help='prints input file by line to stdout')
-	parser.add_argument('-v', '--version', action='version', version='{} version {}'.format(sys.argv[0], VERSION))
-	parser.add_argument('-w','--warn', type=int, choices=range(3), default=1, 
-		help='how warnings are treated.  Options include 0 (off), 1 (warn, default), and 2 (error)', metavar='LVL')
-	parser.add_argument('filename', help='File to assemble')
+	# We might end up making a disticntion between 1 & 2 for meta-warnings, otherwise this can be changed to a flag
+	parser.add_argument('-v','--verbosity', type=int, choices=range(3), default=1, metavar='LVL',
+		help='sets verbosity level. Can be 0 (none) or 1/2 (verbose)')
+	parser.add_argument('-w','--warnings', type=int, choices=range(3), default=1, metavar='LVL', 
+		help='how to treat warnings.  Can be 0 (ignore), 1 (as warnings), or 2 (as errors)')
+	parser.add_argument('filename', 
+		help='File to assemble')
+
 	args = parser.parse_args()
 
-	if args.debug:
-		print("DEBUG")
+	# Set up logging. We use one logger for problems in the assembler itself (asm_log)
+	# and another for problems in source code being assembled (src_log)
+	#
+	# Note that by default, asm_log does not ever use the WARN level, and src_log 
+	# doesn't use levels below WARN
+	asm_log = logging.getLogger('asm_log')
+	src_log = logging.getLogger('src_log')
 
+	asm_faults = logging.StreamHandler(sys.stderr)
+	asm_faults.setLevel(logging.ERROR)
+
+	asm_info = logging.StreamHandler(sys.stdout)
+
+	src_faults = logging.StreamHandler(sys.stdout)
+	src_faults.setLevel(logging.WARN)
+
+	if args.verbosity > 0:
+		asm_info.setLevel(logging.INFO)	
+
+	if args.warnings == 0:
+		src_faults.addFilter(lambda record: record.level != logging.WARN)
+
+	fault_fmt = logging.Formatter('{levelname}: {message}', style='{')
+	info_fmt = logging.Formatter('{message}', style='{')
+
+	asm_faults.setFormatter(fault_fmt)
+	asm_info.setFormatter(info_fmt)
+	src_faults.setFormatter(fault_fmt)
+
+	asm_log.addHandler(asm_faults)
+	asm_log.addHandler(asm_info)
+	src_log.addHandler(src_faults)
+
+	if args.debug > 0:
+		asm_logfile = logging.FileHandler('.logiasm_log')
+		src_logfile = logging.FileHandler('.logiasm_log')
+
+		if args.debug == 2:
+			asm_logfile.setLevel(logging.DEBUG)
+			src_logfile.setLevel(logging.DEBUG)
+		else:
+			asm_logfile.setLevel(logging.INFO)
+			src_logfile.setLevel(logging.INFO)
+
+		log_fmt = logging.Formatter('{asctime}:{name}:{levelname}:{message}', style='{')
+		asm_logfile.setFormatter(log_fmt)
+		src_logfile.setFormatter(log_fmt)
+
+		asm_log.addHandler(asm_logfile)
+		src_log.addHandler(src_logfile)
+
+	# Load ISA?
 	if args.isa:
 		print("NEW ISA")
 	else:
 		print("Default ISA")
 
-	if args.print_input:
-		print("INPUT ECHO")
-
 	with safe_open(args.filename,'r') as (f, err):
 		if err:
-			# IOError, file not found
-			pass
+			# File not found/not accessible
+			src_log.error("Couldn't open source file %s", args.filename)
+			sys.exit(err.errno)
 		else:
-			# Actual code, read data?
-			code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
-			for line in code:
-				print(line)
+			lines_of_code = f.readlines()
+
+	code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
+	for line in code:
+		print(line)
 
 	sys.exit()
 
@@ -299,7 +357,7 @@ def toHex(bNum):
 		bNum = bNum[:-4]
 	return hexNum
 
-
+# Replacing with print_error(code, exception) ???
 def shutd(code):
 	'''Exits program with correct message and cleanup'''
 	global f, iout, dout, lnum
