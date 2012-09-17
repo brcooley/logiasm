@@ -51,6 +51,8 @@ def safe_open(filename, mode='r'):
 	try:
 		f = open(filename, mode)
 	except EnvironmentError as err:
+		_log = logging.getLogger('asm_log')
+		_log.error("open() failed",exc_info=err)
 		yield None, err
 	else:
 		try:
@@ -84,9 +86,6 @@ def main():
 
 	# Set up logging. We use one logger for problems in the assembler itself (asm_log)
 	# and another for problems in source code being assembled (src_log)
-	#
-	# Note that by default, asm_log does not ever use the WARN level, and src_log 
-	# doesn't use levels below WARN
 	asm_log = logging.getLogger('asm_log')
 	src_log = logging.getLogger('src_log')
 
@@ -116,40 +115,33 @@ def main():
 	src_log.addHandler(src_faults)
 
 	if args.debug > 0:
-		asm_logfile = logging.FileHandler('.logiasm_log')
-		src_logfile = logging.FileHandler('.logiasm_log')
+		com_logfile = logging.FileHandler('.logiasm_log')
 
 		if args.debug == 2:
-			asm_logfile.setLevel(logging.DEBUG)
-			src_logfile.setLevel(logging.DEBUG)
+			com_logfile.setLevel(logging.DEBUG)
 		else:
-			asm_logfile.setLevel(logging.INFO)
-			src_logfile.setLevel(logging.INFO)
+			com_logfile.setLevel(logging.INFO)
 
-		log_fmt = logging.Formatter('{asctime}:{name}:{levelname}:{message}', style='{')
-		asm_logfile.setFormatter(log_fmt)
-		src_logfile.setFormatter(log_fmt)
+		com_logfile.setFormatter(logging.Formatter('{asctime}:{name}:{levelname}:{message}', style='{'))
 
-		asm_log.addHandler(asm_logfile)
-		src_log.addHandler(src_logfile)
+		asm_log.addHandler(com_logfile)
+		src_log.addHandler(com_logfile)
 
 	# Load ISA?
 	if args.isa:
-		print("NEW ISA")
+		asm_log.info("Using %s as target ISA", args.isa)
 	else:
-		print("Default ISA")
+		asm_log.debug("No ISA parsed, will infer from source file")
 
 	with safe_open(args.filename,'r') as (f, err):
 		if err:
 			# File not found/not accessible
 			src_log.error("Couldn't open source file %s", args.filename)
-			sys.exit(err.errno)
 		else:
 			lines_of_code = f.readlines()
-
-	code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
-	for line in code:
-		print(line)
+			code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
+			for line in code:
+				print(line)
 
 	sys.exit()
 
