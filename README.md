@@ -8,10 +8,10 @@ machine code suitable for use in [Logisim][lg].
 Currently, work is being done to transform smasm.py into a more readable, and generic assembler, [logiasm.py][self].  As of this commit, logiasm is not functional.  See the todo list below for progress.
 
 #### Todo ####
- + Argument parsing X
- + Logging infrastructure X
+ + ~~Argument parsing~~
+ + Logging infrastructure
  + ISA spec definition
-  + Filesystem semantics X
+  + ~~Filesystem semantics~~
   + Syntax
   + Parser
   + Runtime error checking
@@ -64,4 +64,4 @@ is preserved under the legacy directory.
 [lg]:http://ozark.hendrix.edu/~burch/logisim
 
 [self]:https://github.com/brcooley/logiasm/logiasm.py
-[json]:http://json.org
+[json]:http://www.json.org/
