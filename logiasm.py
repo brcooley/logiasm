@@ -62,24 +62,24 @@ def safe_open(filename, mode='r'):
 
 
 def main():
-	global fin, iout, dout, lnum, opnum, inum, addrPos, header, fullOut, strict, multiOut, labels    
+	global fin, iout, dout, lnum, opnum, inum, addrPos, header, fullOut, strict, multiOut, labels
 
 	# Parse arguments
-	parser = argparse.ArgumentParser(description=DESC, 
-									 epilog=EPILOG, 
+	parser = argparse.ArgumentParser(description=DESC,
+									 epilog=EPILOG,
 									 formatter_class=argparse.RawDescriptionHelpFormatter)
-	parser.add_argument('--version', action='version', 
+	parser.add_argument('--version', action='version',
 		version='{} version {}'.format(sys.argv[0], VERSION))
 	parser.add_argument('-d','--debug', type=int, choices=range(3), default=0, metavar='LVL',
 		help='sets debug logging level (default=0)')
-	parser.add_argument('-i','--isa', 
+	parser.add_argument('-i','--isa',
 		help='uses the specified ISA during assembly. Otherwise, the file directive is read or the default ISA is used')
 	# We might end up making a disticntion between 1 & 2 for meta-warnings, otherwise this can be changed to a flag
 	parser.add_argument('-v','--verbosity', type=int, choices=range(3), default=1, metavar='LVL',
 		help='sets verbosity level. Can be 0 (none) or 1/2 (verbose)')
-	parser.add_argument('-w','--warnings', type=int, choices=range(3), default=1, metavar='LVL', 
+	parser.add_argument('-w','--warnings', type=int, choices=range(3), default=1, metavar='LVL',
 		help='how to treat warnings.  Can be 0 (ignore), 1 (as warnings), or 2 (as errors)')
-	parser.add_argument('filename', 
+	parser.add_argument('filename',
 		help='File to assemble')
 
 	args = parser.parse_args()
@@ -98,7 +98,7 @@ def main():
 	src_faults.setLevel(logging.WARN)
 
 	if args.verbosity > 0:
-		asm_info.setLevel(logging.INFO)	
+		asm_info.setLevel(logging.INFO)
 
 	if args.warnings == 0:
 		src_faults.addFilter(lambda record: record.level != logging.WARN)
@@ -130,6 +130,7 @@ def main():
 	# Load ISA?
 	if args.isa:
 		asm_log.info("Using %s as target ISA", args.isa)
+
 	else:
 		asm_log.debug("No ISA parsed, will infer from source file")
 
@@ -168,9 +169,9 @@ def main():
 				continue
 			elif data.strip() == '.text':
 				header = '.text'
-				break           
+				break
 			elif data == '':
-				continue           
+				continue
 			listDat = [x.strip() for x in data.split(',')]
 			for item in listDat:
 				if multiOut:
@@ -212,9 +213,11 @@ def main():
 	shutd(0)
 
 
-def load_isa():
-	pass
-		
+def load_isa(filename):
+	'''Control function to load and parse an isa description.'''
+
+
+
 def preProcess(line):
 	'''Takes line from file and returns line without labels or comments'''
 	global lnum, opnum, addrPos, header, fullOut, labels
@@ -300,7 +303,7 @@ def parseReg(reg):
 		return int(reg[1])
 	else:
 		shutd(300)
-	
+
 
 def toBin(num, size, usign=0):
 	'''Takes bin, int, or hex number, returns two-compliment binary of length size'''
@@ -319,7 +322,7 @@ def toBin(num, size, usign=0):
 	if neg:
 		binNum = ''.join(['0' if x == '1' else '1' for x in binNum])
 	return binNum
-	
+
 
 # RF -> simply calling int(num,0) should work
 def toInt(num):
@@ -368,7 +371,7 @@ def shutd(code):
 	elif code == 6:
 		print('ERR:{0}: Invalid sytax, try --help for guide'.format(lnum))
 	elif code == 99:
-		pass 
+		pass
 	elif code == 100:
 		print('ERR:{0}: Label is already in use'.format(lnum))
 	elif code == 200:
@@ -383,7 +386,7 @@ def shutd(code):
 		print('ERR:{0}: Integer conversion failed'.format(lnum))
 	else: #Code 98 is reserved for unspecified error
 		print('ERR: Unspecified error')
-		
+
 	try:
 		f.close()
 	except (IOError, NameError):
@@ -408,16 +411,16 @@ DESC = '''
 
 EPILOG = textwrap.dedent('''
 	TIPS
-	- All files must start with either '.data' or '.text'. Regardless of how a 
+	- All files must start with either '.data' or '.text'. Regardless of how a
 	    file starts, before instructions are written, '.text' must be present.
 	- Similarly, all files must have an '.asm' extension. This does not imply
 	    any structure, it's for easy output naming conventions.
-	- Most error messages print out the line number where the error was 
+	- Most error messages print out the line number where the error was
 	    encountered right after 'ERR:'.
 
 	KNOWN BUGS
-	No bugs are currently known, but to report any you find, please email 
-	brcooley@cs.wm.edu, or submit an issue at 
+	No bugs are currently known, but to report any you find, please email
+	brcooley@cs.wm.edu, or submit an issue at
 	https://github.com/brcooley/logiasm.  The inclusion of the error message you
 	received would be greatly appreciated.
 ''')

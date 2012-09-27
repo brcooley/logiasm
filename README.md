@@ -50,7 +50,15 @@ All ISA files are specified in [JSON][json], and must conform to the following s
 This should either specify the number of usable registers as an int, or pass an object with a key for each register mapping to an object describing the register traits.  There are no required keys in the register trait object, but optional values include a boolean write key telling the assembler if writes to this register are allowed in user code, a , and a 
 
 **bits:** : _int_  
+The bit length of each instruction.  
+
 **instructions** : _object_  
+An object with instruction names for keys mapping to object values.  The value object conforms to the following structure:  
+
+ + type : _string_ - If applicable, the type of instruction.  Note that every instruction must supply a type, an opcode, or both
+ + opcode : _string_ - A string representation of the binary opcode.  The string can be optionally prefixed with "0b"  
+ + fnct : _string_ - The function code, generally used by instructions that share the same opcode  
+
 types : _object_  
 
 ## History ##
