@@ -28,5 +28,4 @@ pos3: addi $2, $2, 3
       sw $3, $0, toSave
       jal pos1
       slt $1, $6, $1
-      ori $1, $
       end
