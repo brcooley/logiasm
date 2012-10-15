@@ -128,18 +128,26 @@ def main():
 
 	# Load ISA?
 	if args.isa:
-		asm_log.info("Using %s as target ISA", args.isa)
+		asm_log.info("Using {} as target ISA".format(args.isa))
 
 	else:
 		asm_log.debug("No ISA parsed, will infer from source file")
 
-	with safe_open(args.filename,'r') as (f, err):
-		if err == None:
-			lines_of_code = f.readlines()
-			code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
-			for line in code:
-				print(line)
+	# Open file, strip whitespace
+	lines_of_code = []
+	code = []
 
+	with safe_open(args.filename,'r') as f:
+		lines_of_code = f.readlines()
+		code = list(filter(lambda x: x != '', (x[:x.find('#')].strip() for x in lines_of_code)))
+		for line in code:
+			print(line)
+
+	# 1st pass
+	label_map = {k[:k.find(':')]:v for v,k in enumerate(code) if k.find(':') > -1}
+	print(label_map)
+	# 2nd pass
+	# Output
 	sys.exit()
 
 
@@ -216,9 +224,7 @@ def load_isa(filename):
 
 def preProcess(line):
 	'''Takes line from file and returns line without labels or comments'''
-	global lnum, opnum, addrPos, header, fullOut, labels
-	if fullOut:
-		print('{0}:'.format(lnum).rjust(4)+' {0}'.format(line))
+	global lnum, opnum, addrPos, header, labels
 	lnum += 1
 	if line == '.text':
 		header = '.text'
