@@ -74,9 +74,8 @@ def main():
 		help='sets debug logging level (default=0)')
 	parser.add_argument('-i','--isa',
 		help='uses the specified ISA during assembly. Otherwise, the file directive is read or the default ISA is used')
-	# We might end up making a disticntion between 1 & 2 for meta-warnings, otherwise this can be changed to a flag
-	parser.add_argument('-v','--verbosity', type=int, choices=range(3), default=1, metavar='LVL',
-		help='sets verbosity level. Can be 0 (none) or 1/2 (verbose)')
+	parser.add_argument('-v','--verbosity', action='store_true',
+		help='toggles on verbose output')
 	parser.add_argument('-w','--warnings', type=int, choices=range(3), default=1, metavar='LVL',
 		help='how to treat warnings.  Can be 0 (ignore), 1 (as warnings), or 2 (as errors)')
 	parser.add_argument('filename',
