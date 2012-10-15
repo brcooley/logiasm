@@ -52,7 +52,7 @@ def safe_open(filename, mode='r'):
 		f = open(filename, mode)
 	except EnvironmentError as err:
 		_log = logging.getLogger('asm_log')
-		_log.error("open() failed",exc_info=err)
+		_log.error("Couldn't open source file {}".format(filename)) #, exc_info=err)
 		yield None, err
 	else:
 		try:
@@ -91,26 +91,26 @@ def main():
 	asm_faults = logging.StreamHandler(sys.stderr)
 	asm_faults.setLevel(logging.ERROR)
 
-	asm_info = logging.StreamHandler(sys.stdout)
-
 	src_faults = logging.StreamHandler(sys.stdout)
 	src_faults.setLevel(logging.WARN)
-
-	if args.verbosity > 0:
-		asm_info.setLevel(logging.INFO)
-
-	if args.warnings == 0:
-		src_faults.addFilter(lambda record: record.level != logging.WARN)
 
 	fault_fmt = logging.Formatter('{levelname}: {message}', style='{')
 	info_fmt = logging.Formatter('{message}', style='{')
 
+	# This needs some help, as turning it on means every msg with level >= ERROR gets printed twice
+	if args.verbosity > 0:
+		asm_info = logging.StreamHandler(sys.stdout)
+		asm_info.setLevel(logging.INFO)
+		asm_info.setFormatter(info_fmt)
+		asm_log.addHandler(asm_info)
+
+	if args.warnings == 0:
+		src_faults.addFilter(lambda record: record.level != logging.WARN)
+
 	asm_faults.setFormatter(fault_fmt)
-	asm_info.setFormatter(info_fmt)
 	src_faults.setFormatter(fault_fmt)
 
 	asm_log.addHandler(asm_faults)
-	asm_log.addHandler(asm_info)
 	src_log.addHandler(src_faults)
 
 	if args.debug > 0:
@@ -134,10 +134,7 @@ def main():
 		asm_log.debug("No ISA parsed, will infer from source file")
 
 	with safe_open(args.filename,'r') as (f, err):
-		if err:
-			# File not found/not accessible
-			src_log.error("Couldn't open source file %s", args.filename)
-		else:
+		if err == None:
 			lines_of_code = f.readlines()
 			code = filter(lambda x: x != '', (x[:x.find('#')].strip() for x in f.readlines()))
 			for line in code:
