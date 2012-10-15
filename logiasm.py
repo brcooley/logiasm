@@ -53,10 +53,10 @@ def safe_open(filename, mode='r'):
 	except EnvironmentError as err:
 		_log = logging.getLogger('asm_log')
 		_log.error("Couldn't open source file {}".format(filename)) #, exc_info=err)
-		yield None, err
+		sys.exit()
 	else:
 		try:
-			yield f, None
+			yield f
 		finally:
 			f.close()
 
